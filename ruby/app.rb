@@ -99,16 +99,34 @@ module Isucon4
       end
 
       def get_log(id)
-        path = LOG_DIR.join(id.split('/').last)
-        return {} unless path.exist?
+        mysql = connection
+        advertiser_id = id.split('/').last
+        redirects = mysql.xquery('SELECT id, isuad, advertiser_id ,user_agent FROM redirects WHERE advertiser_id= ?', advertiser_id)
+        #path = LOG_DIR.join(id.split('/').last)
+        return {} unless redirects.exist?
 
-        open(path, 'r') do |io|
-          io.flock File::LOCK_SH
-          io.read.each_line.map do |line|
-            ad_id, user, agent = line.chomp.split(?\t,3)
-            {ad_id: ad_id, user: user, agent: agent && !agent.empty? ? agent : :unknown}.merge(decode_user_key(user))
-          end.group_by { |click| click[:ad_id] }
+        redirects.each do | data |
+          {ad_id: data['id'], user: data['isuad'], agent: data['user_agent'] && !agent.empty? ? agent : :unknown}.merge(decode_user_key(data['isuad']))
         end
+        #open(path, 'r') do |io|
+        #  io.flock File::LOCK_SH
+        #  io.read.each_line.map do |line|
+        #    ad_id, user, agent = line.chomp.split(?\t,3)
+        #    {ad_id: ad_id, user: user, agent: agent && !agent.empty? ? agent : :unknown}.merge(decode_user_key(user))
+        #  end.group_by { |click| click[:ad_id] }
+        #end
+      end
+
+      def connection
+        return $mysql if $mysql
+        $mysql = Mysql2::Client.new(
+          :host => '203.104.111.176',
+          :port => 3306,
+          :username => 'root',
+          :password => '',
+          :database => 'isucon',
+          :reconnect => true,
+        )
       end
     end
 
@@ -203,6 +221,7 @@ module Isucon4
       end
     end
 
+    # log for mysql
     post '/slots/:slot/ads/:id/count' do
       key = ad_key(params[:slot], params[:id])
 
@@ -213,10 +232,16 @@ module Isucon4
       end
 
       redis(key).hincrby(key, 'impressions', 1)
+      #mysql = connection
+      #mysql.xquery(
+      #  'UPDATE impressions SET count = count + 1 WHERE key = ?',
+      #  key
+      #)
 
       status 204
     end
 
+    # log for mysql
     get '/slots/:slot/ads/:id/redirect' do
       ad = get_ad(params[:slot], params[:id])
       unless ad
@@ -225,10 +250,19 @@ module Isucon4
         next {error: :not_found}.to_json
       end
 
-      open(LOG_DIR.join(ad['advertiser'].split('/').last), 'a') do |io|
-        io.flock File::LOCK_EX
-        io.puts([ad['id'], request.cookies['isuad'], request.user_agent].join(?\t))
-      end
+      mysql = connection
+      mysql.xquery(
+        'INSERT INTO redirects (id, isuad, advertiser_id ,user_agent) VALUES (?, ?, ?, ?)',
+        ad['id'],
+        ad['advertiser'].split('/').last,
+        request.cookies['isuad'],
+        request.user_agent,
+      )
+
+      #open(LOG_DIR.join(ad['advertiser'].split('/').last), 'a') do |io|
+      #  io.flock File::LOCK_EX
+      #  io.puts([ad['id'], request.cookies['isuad'], request.user_agent].join(?\t))
+      #end
 
       redirect ad['destination']
     end
