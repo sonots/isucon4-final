@@ -103,13 +103,14 @@ module Isucon4
       def get_log(id)
         mysql = connection
         advertiser_id = id.split('/').last
-        redirects = mysql.xquery('SELECT id, isuad, advertiser_id ,user_agent FROM redirects WHERE advertiser_id= ?', advertiser_id)
+        redirects = mysql.xquery('SELECT ad_id, isuad, advertiser_id ,user_agent FROM redirects WHERE advertiser_id= ?', advertiser_id)
         #path = LOG_DIR.join(id.split('/').last)
-        return {} unless redirects.nil?
+        return {} if redirects.nil?
 
-        redirects.each do | data |
-          {ad_id: data['id'], user: data['isuad'], agent: data['user_agent'] && !agent.empty? ? agent : :unknown}.merge(decode_user_key(data['isuad']))
-        end
+        redirects.each.map do | data |
+          agent = data['user_agent']
+          {ad_id: data['ad_id'], user: data['isuad'], agent: agent && !agent.empty? ? agent : :unknown}.merge(decode_user_key(data['isuad']))
+        end.group_by { |click| click[:ad_id] }
         #open(path, 'r') do |io|
         #  io.flock File::LOCK_SH
         #  io.read.each_line.map do |line|
@@ -287,7 +288,7 @@ module Isucon4
         end
 
         get_log(advertiser_id).each do |ad_id, clicks|
-          report[ad_id][:clicks] = clicks.size
+          report[ad_id.to_s][:clicks] = clicks.size
         end
       end.to_json
     end
@@ -331,6 +332,9 @@ module Isucon4
         end
       end
 
+      mysql = connection
+      mysql.xquery('DELET FROM redirects')
+     
       LOG_DIR.children.each(&:delete)
 
       content_type 'text/plain'
