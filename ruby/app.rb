@@ -36,7 +36,7 @@ module Isucon4
       end
 
       def redis(key)
-        @id ||= []
+        @id ||= {}
         @id[key] = str_hash(key) % 3
         $redis[@id[key]]
       end
