@@ -6,6 +6,7 @@ require 'redis'
 require 'redis/connection/hiredis'
 require 'json'
 require 'rack/request'
+require 'mysql2-cs-bind'
 require_relative 'ext/rack/multipart/parser'
 
 ADDRESSES = %w[
@@ -253,10 +254,10 @@ module Isucon4
 
       mysql = connection
       mysql.xquery(
-        'INSERT INTO redirects (id, isuad, advertiser_id ,user_agent) VALUES (?, ?, ?, ?)',
+        'INSERT INTO redirects (ad_id, isuad, advertiser_id ,user_agent) VALUES (?, ?, ?, ?)',
         ad['id'],
-        ad['advertiser'].split('/').last,
         request.cookies['isuad'],
+        ad['advertiser'].split('/').last,
         request.user_agent,
       )
 
