@@ -314,7 +314,7 @@ module Isucon4
         logs = get_log(advertiser_id)
 
         reports.each do |ad_id, report|
-          log = logs[ad_id] || []
+          log = logs[ad_id.to_i] || []
           report[:clicks] = log.size
 
           breakdown = report[:breakdown] = {}
