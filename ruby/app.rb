@@ -105,7 +105,7 @@ module Isucon4
         advertiser_id = id.split('/').last
         redirects = mysql.xquery('SELECT id, isuad, advertiser_id ,user_agent FROM redirects WHERE advertiser_id= ?', advertiser_id)
         #path = LOG_DIR.join(id.split('/').last)
-        return {} unless redirects.exist?
+        return {} unless redirects.nil?
 
         redirects.each do | data |
           {ad_id: data['id'], user: data['isuad'], agent: data['user_agent'] && !agent.empty? ? agent : :unknown}.merge(decode_user_key(data['isuad']))
