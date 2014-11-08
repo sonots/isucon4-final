@@ -8,12 +8,21 @@ require 'json'
 require 'rack/request'
 require 'mysql2-cs-bind'
 require_relative 'ext/rack/multipart/parser'
+require 'socket'
 
 ADDRESSES = %w[
   10.11.54.176
   10.11.54.177
   10.11.54.178
 ]
+
+HOST2ADDR = {
+  'isu26a' => '10.11.54.176',
+  'isu26b' => '10.11.54.177',
+  'isu26c' => '10.11.54.178',
+}
+$hostname = Socket.gethostname
+$address = HOST2ADDR[$hostname]
 
 $redis = []
 $redis[0] = Redis.new(:driver => :hiredis, :host => ADDRESSES[0])
@@ -86,7 +95,7 @@ module Isucon4
 
         return nil if !ad || ad.empty?
         ad['impressions'] = ad['impressions'].to_i
-        ad['asset'] = url("/slots/#{slot}/ads/#{id}/asset")
+        ad['asset'] = "http://#{$addr}/slots/#{slot}/ads/#{id}/asset"
         ad['counter'] = url("/slots/#{slot}/ads/#{id}/count")
         ad['redirect'] = url("/slots/#{slot}/ads/#{id}/redirect")
         ad['type'] = nil if ad['type'] == ""
@@ -160,7 +169,8 @@ module Isucon4
       )
       # redis(asset_key(slot,id)).set(asset_key(slot,id), asset.read)
       # asset.unlink # hey, do not keep tmp files!
-      store_dir = "/home/isucon/webapp/public"
+      # store_dir = "/home/isucon/webapp/public"
+      store_dir = "/dev/shm/public"
       FileUtils.mkdir_p "#{store_dir}/slots/#{slot}/ads/#{id}"
       File.rename(asset.path, "#{store_dir}/slots/#{slot}/ads/#{id}/asset")
       FileUtils.chmod(0644, "#{store_dir}/slots/#{slot}/ads/#{id}/asset")

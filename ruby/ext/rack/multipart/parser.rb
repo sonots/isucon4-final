@@ -101,7 +101,7 @@ module Rack
             filename = get_filename(head)
 
             if filename
-              body = Tempfile.new("RackMultipart")
+              body = Tempfile.new("RackMultipart", '/dev/shm')
               body.binmode  if body.respond_to?(:binmode)
             end
 
