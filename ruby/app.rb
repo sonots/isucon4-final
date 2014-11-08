@@ -6,6 +6,8 @@ require 'redis'
 require 'redis/connection/hiredis'
 require 'json'
 require 'rack/request'
+require 'mysql2'
+require 'mysql2-cs-bind'
 
 ADDRESSES = %w[
   10.11.54.176
@@ -328,6 +330,8 @@ module Isucon4
           redis.del(*keys)
         end
       end
+      mysql = connection
+      mysql.xquery('DELETE TABLE redirects')
 
       LOG_DIR.children.each(&:delete)
 
