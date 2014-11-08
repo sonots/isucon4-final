@@ -159,6 +159,7 @@ module Isucon4
         'impressions', 0,
       )
       redis(asset_key(slot,id)).set(asset_key(slot,id), asset.read)
+      asset.unlink # hey, do not keep tmp files!
       redis(slot_key(slot)).rpush(slot_key(slot), id)
       redis(advertiser_key(advertiser_id)).sadd(advertiser_key(advertiser_id), key)
 
