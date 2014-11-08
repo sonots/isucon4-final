@@ -6,3 +6,6 @@ gem 'foreman'
 gem 'redis'
 gem 'hiredis'
 gem 'rack-ltsv_logger', git: 'https://github.com/sonots/rack-ltsv_logger'
+
+gem 'mysql2'
+gem 'mysql2-cs-bind'
