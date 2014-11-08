@@ -334,7 +334,7 @@ module Isucon4
       end
 
       mysql = connection
-      mysql.xquery('DELET FROM redirects')
+      mysql.query('DELETE FROM redirects;')
      
       LOG_DIR.children.each(&:delete)
 
