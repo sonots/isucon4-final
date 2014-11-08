@@ -184,7 +184,10 @@ module Isucon4
     get '/slots/:slot/ad' do
       ad = next_ad(params[:slot])
       if ad
-        redirect "/slots/#{params[:slot]}/ads/#{ad['id']}"
+        # redirect "/slots/#{params[:slot]}/ads/#{ad['id']}"
+        content_type :json
+        ad = get_ad(params[:slot],ad[:id])
+        ad.to_json
       else
         status 404
         content_type :json
