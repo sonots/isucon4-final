@@ -158,8 +158,10 @@ module Isucon4
         'destination', params[:destination],
         'impressions', 0,
       )
-      redis(asset_key(slot,id)).set(asset_key(slot,id), asset.read)
-      asset.unlink # hey, do not keep tmp files!
+      # redis(asset_key(slot,id)).set(asset_key(slot,id), asset.read)
+      # asset.unlink # hey, do not keep tmp files!
+      FileUtils.mkdir_p "/dev/shm/public/slots/#{slot}/ads/#{id}"
+      File.rename(asset.path, "/dev/shm/public/slots/#{slot}/ads/#{id}/asset")
       redis(slot_key(slot)).rpush(slot_key(slot), id)
       redis(advertiser_key(advertiser_id)).sadd(advertiser_key(advertiser_id), key)
 
