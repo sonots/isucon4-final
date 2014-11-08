@@ -1,7 +1,9 @@
 require 'sinatra/base'
 require 'pathname'
 require 'digest/sha2'
+require 'hiredis'
 require 'redis'
+require 'redis/connection/hiredis'
 require 'json'
 require 'rack/request'
 
