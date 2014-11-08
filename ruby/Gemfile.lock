@@ -1,3 +1,10 @@
+GIT
+  remote: https://github.com/sonots/rack-ltsv_logger
+  revision: c21640347ee585a56901f6e8449f2619b0873ad6
+  specs:
+    rack-ltsv_logger (0.0.1)
+      rack
+
 GEM
   remote: https://rubygems.org/
   specs:
@@ -29,6 +36,7 @@ PLATFORMS
 
 DEPENDENCIES
   foreman
+  rack-ltsv_logger!
   redis
   sinatra
   unicorn
