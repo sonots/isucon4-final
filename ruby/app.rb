@@ -160,9 +160,10 @@ module Isucon4
       )
       # redis(asset_key(slot,id)).set(asset_key(slot,id), asset.read)
       # asset.unlink # hey, do not keep tmp files!
-      FileUtils.mkdir_p "/dev/shm/public/slots/#{slot}/ads/#{id}"
-      File.rename(asset.path, "/dev/shm/public/slots/#{slot}/ads/#{id}/asset")
-      FileUtils.chmod(0644, "/dev/shm/public/slots/#{slot}/ads/#{id}/asset")
+      store_dir = "/home/isucon/webapp/public"
+      FileUtils.mkdir_p "#{store_dir}/slots/#{slot}/ads/#{id}"
+      File.rename(asset.path, "#{store_dir}/slots/#{slot}/ads/#{id}/asset")
+      FileUtils.chmod(0644, "#{store_dir}/slots/#{slot}/ads/#{id}/asset")
       redis(slot_key(slot)).rpush(slot_key(slot), id)
       redis(advertiser_key(advertiser_id)).sadd(advertiser_key(advertiser_id), key)
 
