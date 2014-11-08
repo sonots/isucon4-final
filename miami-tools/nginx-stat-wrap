@@ -1,0 +1,4 @@
+#!/bin/sh
+
+#cat /var/log/nginx/access.log  |
+lltsv -k method,uri,reqtime -K | nginx_stat.rb | lltsv -k sum,count,mean,path -K | sort -n -r

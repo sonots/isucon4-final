@@ -1,0 +1,4 @@
+#!/bin/sh
+
+#cat app.log |
+~/miami-tools/http_stat.rb | lltsv -k sum,count,mean,uri -K | sort -r -n

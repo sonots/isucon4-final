@@ -1,0 +1,4 @@
+#!/bin/sh
+
+#cat app.log |
+sql_stat.rb | lltsv -k sum,count,mean,query | sort -r -n

@@ -1,0 +1,5 @@
+#!/bin/sh
+
+/etc/init.d/nginx stop
+sh -c "echo -n >  /var/log/nginx/access.log"
+/etc/init.d/nginx start

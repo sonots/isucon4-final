@@ -1,0 +1,4 @@
+#!/bin/sh
+
+#cat app.log |
+template_stat.rb | lltsv -k sum,count,mean,template | sort -r -n
