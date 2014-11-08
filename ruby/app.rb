@@ -7,6 +7,17 @@ require 'redis/connection/hiredis'
 require 'json'
 require 'rack/request'
 
+ADDRESSES = %w[
+  10.11.54.176
+  10.11.54.177
+  10.11.54.178
+]
+
+$redis = []
+$redis[0] = Redis.new(:driver => :hiredis, :host => ADDRESSES[0])
+$redis[1] = Redis.new(:driver => :hiredis, :host => ADDRESSES[1])
+$redis[2] = Redis.new(:driver => :hiredis, :host => ADDRESSES[2])
+
 module Isucon4
   class App < Sinatra::Base
     set :public_folder, "#{__dir__}/../public"
@@ -20,8 +31,14 @@ module Isucon4
         request.env['HTTP_X_ADVERTISER_ID']
       end
 
-      def redis
-        Redis.current
+      def str_hash(key)
+        key.bytes.inject(&:+)
+      end
+
+      def redis(key)
+        @id ||= []
+        @id[key] = str_hash(key) % 3
+        $redis[@id[key]]
       end
 
       def ad_key(slot, id)
@@ -41,13 +58,13 @@ module Isucon4
       end
 
       def next_ad_id
-        redis.incr('isu4:ad-next').to_i
+        redis('isu4:ad-next').incr('isu4:ad-next').to_i
       end
 
       def next_ad(slot)
         key = slot_key(slot)
 
-        id = redis.rpoplpush(key, key)
+        id = redis(key).rpoplpush(key, key)
         unless id
           return nil
         end
@@ -56,14 +73,14 @@ module Isucon4
         if ad
           ad
         else
-          redis.lrem(key, 0, id)
+          redis(key).lrem(key, 0, id)
           next_ad(slot)
         end
       end
 
       def get_ad(slot, id)
         key = ad_key(slot, id)
-        ad = redis.hgetall(key)
+        ad = redis(key).hgetall(key)
 
         return nil if !ad || ad.empty?
         ad['impressions'] = ad['impressions'].to_i
@@ -110,7 +127,7 @@ module Isucon4
       id = next_ad_id
       key = ad_key(slot, id)
 
-      redis.hmset(
+      redis(key).hmset(
         key,
         'slot', slot,
         'id', id,
@@ -120,9 +137,9 @@ module Isucon4
         'destination', params[:destination],
         'impressions', 0,
       )
-      redis.set(asset_key(slot,id), asset.read)
-      redis.rpush(slot_key(slot), id)
-      redis.sadd(advertiser_key(advertiser_id), key)
+      redis(asset_key(slot,id)).set(asset_key(slot,id), asset.read)
+      redis(slot_key(slot)).rpush(slot_key(slot), id)
+      redis(advertiser_key(advertiser_id)).sadd(advertiser_key(advertiser_id), key)
 
       content_type :json
       get_ad(slot, id).to_json
@@ -155,7 +172,8 @@ module Isucon4
       ad = get_ad(params[:slot], params[:id])
       if ad
         content_type ad['type'] || 'application/octet-stream'
-        data = redis.get(asset_key(params[:slot],params[:id])).b
+        key = asset_key(params[:slot],params[:id])
+        data = redis(key).get(key).b
 
         # Chrome sends us Range request even we declines...
         range = request.env['HTTP_RANGE'] 
@@ -188,13 +206,13 @@ module Isucon4
     post '/slots/:slot/ads/:id/count' do
       key = ad_key(params[:slot], params[:id])
 
-      unless redis.exists(key)
+      unless redis(key).exists(key)
         status 404
         content_type :json
         next {error: :not_found}.to_json
       end
 
-      redis.hincrby(key, 'impressions', 1)
+      redis(key).hincrby(key, 'impressions', 1)
 
       status 204
     end
@@ -223,8 +241,9 @@ module Isucon4
       content_type :json
 
       {}.tap do |report|
-        redis.smembers(advertiser_key(advertiser_id)).each do |ad_key|
-          ad = redis.hgetall(ad_key)
+        key = advertiser_key(advertiser_id)
+        redis(key).smembers(key).each do |ad_key|
+          ad = redis(ad_key).hgetall(ad_key)
           next unless ad
           ad['impressions'] = ad['impressions'].to_i
 
@@ -245,8 +264,9 @@ module Isucon4
       content_type :json
 
       {}.tap do |reports|
-        redis.smembers(advertiser_key(advertiser_id)).each do |ad_key|
-          ad = redis.hgetall(ad_key)
+        key = advertiser_key(advertiser_id)
+        redis(key).smembers(key).each do |ad_key|
+          ad = redis(ad_key).hgetall(ad_key)
           next unless ad
           ad['impressions'] = ad['impressions'].to_i
 
@@ -269,8 +289,10 @@ module Isucon4
     end
 
     post '/initialize' do
-      redis.keys('isu4:*').each_slice(1000).map do |keys|
-        redis.del(*keys)
+      $redis.each do |redis|
+        redis.keys('isu4:*').each_slice(1000).map do |keys|
+          redis.del(*keys)
+        end
       end
 
       LOG_DIR.children.each(&:delete)
